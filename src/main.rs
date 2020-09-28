@@ -80,21 +80,26 @@ pub fn cross(u: &Vec3, v: &Vec3) -> Vec3 {
     )
 }
 
-pub fn hit_sphere(center: Point3, radius: f64, ray: &Ray) -> bool {
+pub fn hit_sphere(center: Point3, radius: f64, ray: &Ray) -> Option<f64> {
     let oc: Vec3 = ray.origin - center;
     let a = dot(&ray.direction, &ray.direction);
     let b = 2. * dot(&oc, &ray.direction);
     let c = dot(&oc, &oc) - radius * radius;
     let discriminant = b * b - 4. * a * c;
-    discriminant > 0.
+    if discriminant < 0. {
+        None
+    } else {
+        Some((-b - discriminant.sqrt()) / (2. * a))
+    }
 }
 
 pub fn ray_color(ray: &Ray) -> Color {
     let sphere_center: Point3 = Point3::new(0., 0., -1.);
     let sphere_radius: f64 = 0.5;
 
-    if hit_sphere(sphere_center, sphere_radius, ray) {
-        return Color::red();
+    if let Some(t) = hit_sphere(sphere_center, sphere_radius, ray) {
+        let n: Vec3 = (ray.at(t) - Vec3::new(0., 0., -1.)).unit_vector();
+        return 0.5 * Color::new(n.x + 1., n.y + 1., n.z + 1.);
     }
 
     let unit_direction: Vec3 = ray.direction.unit_vector();
@@ -156,6 +161,7 @@ fn draw(frame: &mut [u8]) {
     let lower_left_corner =
         origin - horizontal / 2. - vertical / 2. - Vec3::new(0., 0., focal_length);
 
+    // draw to frame pixel by pixel
     for j in (0..IMG_HEIGHT).rev() {
         for i in 0..IMG_WIDTH {
             let u: f64 = i as f64 / (IMG_WIDTH as f64 - 1.);
